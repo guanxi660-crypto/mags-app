@@ -51,6 +51,25 @@ if (!fs.existsSync(FILE_PATH)) {
   // console.log(`${FILE_PATH} already exists`);
 }
 
+// Mags: 镜像构建期把二进制预置在 bundle/ (持久层);
+// 若 FILE_PATH(.npm) 被平台清空/重置, 从 bundle/ 重新复制, 保证 web/bot/v1 永远可用
+const BUNDLE_DIR = path.join(__dirname, 'bundle');
+if (fs.existsSync(BUNDLE_DIR)) {
+  for (const name of ['web', 'bot', 'v1', 'agent']) {
+    const src = path.join(BUNDLE_DIR, name);
+    const dst = path.join(FILE_PATH, name);
+    try {
+      if (fs.existsSync(src) && (!fs.existsSync(dst) || fs.statSync(dst).size !== fs.statSync(src).size)) {
+        fs.copyFileSync(src, dst);
+        fs.chmodSync(dst, 0o775);
+        console.log(`bundled ${name} restored to ${FILE_PATH}`);
+      }
+    } catch (e) {
+      console.error(`bundle restore ${name} failed: ${e.message}`);
+    }
+  }
+}
+
 // 端口检查
 function isValidPort(port) {
   try {
@@ -129,6 +148,8 @@ function deleteNodes() {
 }
 
 // 清理历史文件
+// Mags: 保留固定名二进制 (bundle/ 预置的 web/bot/v1/agent), 只清旧随机名残留
+const KEEP_FILES = new Set(['web', 'bot', 'v1', 'agent']);
 function cleanupOldFiles() {
   try {
     const files = fs.readdirSync(FILE_PATH);
@@ -136,7 +157,7 @@ function cleanupOldFiles() {
       const filePath = path.join(FILE_PATH, file);
       try {
         const stat = fs.statSync(filePath);
-        if (stat.isFile()) {
+        if (stat.isFile() && !KEEP_FILES.has(file)) {
           fs.unlinkSync(filePath);
         }
       } catch (err) {
