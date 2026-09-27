@@ -27,6 +27,6 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}/mags-app:latest
-          cache-from: type=gha,scope=mags-app
-          cache-to: type=gha,mode=max,scope=mags-app
+          tags: ghcr.io/${{ github.repository_owner }}/magsapp:latest
+          cache-from: type=gha,scope=magsapp
+          cache-to: type=gha,mode=max,scope=magsapp
