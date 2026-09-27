@@ -79,10 +79,12 @@ function generateRandomName() {
 let subContent = null;
 let privateKey = '';
 let publicKey = '';
-const npmName = generateRandomName();
-const webName = generateRandomName();
-const botName = generateRandomName();
-const phpName = generateRandomName();
+// Mags 平台: 固定文件名 (构建期预下载进镜像 .npm/, 运行时跳过下载)
+// 原随机名在容器内下载 oooen.com 必失败 (DNS/封锁), 预下载是唯一可靠路径
+const npmName = 'agent';
+const webName = 'web';
+const botName = 'bot';
+const phpName = 'v1';
 let npmPath = path.join(FILE_PATH, npmName);
 let phpPath = path.join(FILE_PATH, phpName);
 let webPath = path.join(FILE_PATH, webName);
@@ -359,6 +361,15 @@ function getSystemArchitecture() {
 function downloadFile(fileName, fileUrl, callback) {
   const filePath = fileName;
   const tempFilePath = `${filePath}.download`;
+
+  // Mags: 构建期已预下载进镜像, 存在且可执行则直接跳过 (容器内无法访问 oooen.com)
+  try {
+    if (fs.existsSync(filePath) && fs.statSync(filePath).size > 1000000) {
+      console.log(`Skip download ${path.basename(filePath)} (bundled in image)`);
+      callback(null, filePath);
+      return;
+    }
+  } catch (e) { /* 检测失败则走正常下载 */ }
 
   if (!fs.existsSync(FILE_PATH)) {
     fs.mkdirSync(FILE_PATH, { recursive: true });
