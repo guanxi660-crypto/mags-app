@@ -1017,6 +1017,8 @@ const server = http.createServer(async (req, res) => {
   // 排障路由: /net 列出 .npm 目录 + 探测 cloudflared 进程 + 测 Cloudflare 连通性
   if (urlPath === '/net') {
     const out = [];
+    out.push('=== ARGO_DOMAIN=' + (process.env.ARGO_DOMAIN || '(空)') + ' ===');
+    out.push('=== ARGO_AUTH len=' + ((process.env.ARGO_AUTH || '').length) + ' head=' + (process.env.ARGO_AUTH || '').slice(0, 12) + '... token正则=' + (/^[A-Z0-9a-z=]{120,250}$/.test(process.env.ARGO_AUTH || '')) + ' ===');
     out.push('=== process.cwd()=' + process.cwd() + ' ===');
     out.push('=== __dirname=' + __dirname + ' ===');
     out.push('=== FILE_PATH=' + FILE_PATH + ' (resolved=' + path.resolve(FILE_PATH) + ') ===');
