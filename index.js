@@ -573,7 +573,7 @@ uuid: ${UUID}`;
     if (ARGO_AUTH.match(/^[A-Z0-9a-z=]{120,250}$/)) {
       // token 模式必须显式 --url http://127.0.0.1（缺省会 https 回源，对明文 sing-box 报 first record does not look like a TLS handshake；
       // 且 localhost 在部分容器解析成 ::1 导致 connection refused，统一用 127.0.0.1）
-      args = `tunnel --edge-ip-version auto --no-autoupdate --protocol http2 run --token ${ARGO_AUTH} --url http://127.0.0.1:${ARGO_PORT}`;
+      args = `tunnel --edge-ip-version auto --no-autoupdate --protocol http2 --logfile "${path.resolve(bootLogPath)}" --loglevel debug run --token ${ARGO_AUTH} --url http://127.0.0.1:${ARGO_PORT}`;
     } else if (ARGO_AUTH.match(/TunnelSecret/)) {
       args = `tunnel --edge-ip-version auto --config "${path.resolve(FILE_PATH, 'tunnel.yml')}" run`;
     } else {
