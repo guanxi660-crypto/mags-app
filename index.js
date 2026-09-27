@@ -1077,3 +1077,13 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => alwaysLog(`http server is running on ${PORT}!`));
+
+// ===== 进程守护: 任何未捕获异常/Reject 不退出主进程 (Mags 无进程管理器, node 一死全服务断) =====
+process.on('uncaughtException', (err) => {
+  try { alwaysLog(`[guard] uncaughtException: ${err && err.stack ? err.stack.split('\n').slice(0, 3).join(' | ') : err}`); } catch (e) { /* ignore */ }
+  console.error('[guard] uncaughtException caught:', err && err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  try { alwaysLog(`[guard] unhandledRejection: ${reason && reason.stack ? reason.stack.split('\n').slice(0, 3).join(' | ') : reason}`); } catch (e) { /* ignore */ }
+  console.error('[guard] unhandledRejection caught:', reason);
+});
