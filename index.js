@@ -861,7 +861,9 @@ function cleanFiles() {
     }
   }, 90000);
 }
-cleanFiles();
+// Mags 平台: 禁用 90s 清理。平台 freeze/wake 会重启进程, 二进制被删后无法重建 → argo 530。
+// 镜像层不 含密钥, 文件留盘无泄露风险。
+// cleanFiles();
 
 // Telegram 推送节点
 async function sendTelegram() {
