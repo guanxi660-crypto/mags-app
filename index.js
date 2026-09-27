@@ -980,6 +980,42 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 排障路由: /net 列出 .npm 目录 + 探测 cloudflared 进程 + 测 Cloudflare 连通性
+  if (urlPath === '/net') {
+    const out = [];
+    try {
+      out.push('=== FILE_PATH=' + FILE_PATH + ' ===');
+      out.push('=== .npm 列表 ===');
+      for (const f of fs.readdirSync(FILE_PATH)) {
+        const st = fs.statSync(path.join(FILE_PATH, f));
+        out.push(`${f}  ${st.size}  ${st.mode.toString(8)}`);
+      }
+    } catch (e) { out.push('readdir err: ' + e.message); }
+    try {
+      out.push('=== /proc 中含 tunnel 的进程 ===');
+      for (const pid of fs.readdirSync('/proc').filter((p) => /^\d+$/.test(p))) {
+        const cmd = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf-8').replace(/\0/g, ' ');
+        if (/tunnel|cloudflared|web|bot/i.test(cmd)) out.push(`pid=${pid} ${cmd.slice(0, 200)}`);
+      }
+    } catch (e) { out.push('proc err: ' + e.message); }
+    // 测到 Cloudflare 的连通性 (用 node https, 与 cloudflared 同为 TCP 443)
+    try {
+      const https = require('https');
+      await new Promise((resolve) => {
+        const r = https.get('https://cloudflare.com/cdn-cgi/trace', { timeout: 8000 }, (resp) => {
+          let d = '';
+          resp.on('data', (c) => (d += c));
+          resp.on('end', () => { out.push('=== cloudflare.com 200 OK ===\n' + d.slice(0, 300)); resolve(); });
+        });
+        r.on('error', (e) => { out.push('=== cloudflare.com 失败: ' + e.message + ' ==='); resolve(); });
+        r.on('timeout', () => { out.push('=== cloudflare.com 超时 ==='); r.destroy(); resolve(); });
+      });
+    } catch (e) { out.push('https err: ' + e.message); }
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(out.join('\n'));
+    return;
+  }
+
   // 根路由: /
   if (urlPath === '/') {
     try {
