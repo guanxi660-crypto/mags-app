@@ -541,7 +541,7 @@ uuid: ${UUID}`;
     if (ARGO_AUTH.match(/^[A-Z0-9a-z=]{120,250}$/)) {
       // token 模式必须显式 --url http://127.0.0.1（缺省会 https 回源，对明文 sing-box 报 first record does not look like a TLS handshake；
       // 且 localhost 在部分容器解析成 ::1 导致 connection refused，统一用 127.0.0.1）
-      args = `tunnel --edge-ip-version auto --no-autoupdate --protocol http2 run --token ${ARGO_AUTH} --url http://127.0.0.1:${ARGO_PORT}`;
+      args = `tunnel --edge-ip-version auto --no-autoupdate --protocol http2 --logfile "${path.resolve(bootLogPath)}" --loglevel debug run --token ${ARGO_AUTH} --url http://127.0.0.1:${ARGO_PORT}`;
     } else if (ARGO_AUTH.match(/TunnelSecret/)) {
       args = `tunnel --edge-ip-version auto --config "${path.resolve(FILE_PATH, 'tunnel.yml')}" run`;
     } else {
@@ -953,9 +953,29 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end(fileContent);
       } catch (err) {
-        res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('Subscription content not yet available, please try again later.');
+        // 排障用: 未就绪时返回 cloudflared 启动日志 (如配置了), 便于定位 530
+        try {
+          const bootLog = fs.readFileSync(bootLogPath, 'utf-8');
+          res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Subscription content not yet available.\n\n--- boot.log ---\n' + bootLog);
+        } catch (e2) {
+          res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Subscription content not yet available, please try again later.');
+        }
       }
+    }
+    return;
+  }
+
+  // 排障路由: /boot 查 cloudflared 启动日志
+  if (urlPath === '/boot') {
+    try {
+      const bootLog = fs.readFileSync(bootLogPath, 'utf-8');
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(bootLog);
+    } catch (err) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('boot.log not found');
     }
     return;
   }
