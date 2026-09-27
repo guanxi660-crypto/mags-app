@@ -996,8 +996,14 @@ const server = http.createServer(async (req, res) => {
   // 排障路由: /net 列出 .npm 目录 + 探测 cloudflared 进程 + 测 Cloudflare 连通性
   if (urlPath === '/net') {
     const out = [];
+    out.push('=== process.cwd()=' + process.cwd() + ' ===');
+    out.push('=== __dirname=' + __dirname + ' ===');
+    out.push('=== FILE_PATH=' + FILE_PATH + ' (resolved=' + path.resolve(FILE_PATH) + ') ===');
     try {
-      out.push('=== FILE_PATH=' + FILE_PATH + ' ===');
+      out.push('=== __dirname 列表 ===');
+      for (const f of fs.readdirSync(__dirname)) out.push(f);
+    } catch (e) { out.push('readdir __dirname err: ' + e.message); }
+    try {
       out.push('=== .npm 列表 ===');
       for (const f of fs.readdirSync(FILE_PATH)) {
         const st = fs.statSync(path.join(FILE_PATH, f));
